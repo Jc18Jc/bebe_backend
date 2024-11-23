@@ -1,0 +1,309 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Baby {
+  babyId        Int         @default(autoincrement()) @id
+  babyName      String      @default("익명이")
+  babySex       Int         @default(0)
+  babyBirthday  DateTime    @default(now())
+  height        Float       @default(0)
+  weight        Float       @default(0)
+  users         UserBaby[]
+  imageUrl      String?     @db.VarChar(255)
+  description   String?
+  createdAt     DateTime    @default(now())
+
+  @@map("Baby")
+}
+
+model User {
+  userId      Int        @default(autoincrement()) @id
+  uuid        Bytes      @db.Binary(16) @unique
+  userName    String     @default("익명")
+  babies      UserBaby[]
+  createdAt   DateTime   @default(now())
+
+  @@map("User")
+  @@index([uuid])
+}
+
+model UserBaby {
+  userUuid    Bytes     @db.Binary(16)
+  babyId      Int
+  role        Int       @default(0)
+  user        User      @relation(fields: [userUuid], references: [uuid])
+  baby        Baby      @relation(fields: [babyId], references: [babyId])
+  createdAt   DateTime  @default(now())
+  
+  @@id([userUuid, babyId])
+  @@map("UserBaby")
+}
+
+model Record {
+  recordId          Int       @default(autoincrement()) @id
+  type              Int
+  startTime         DateTime  @default(now())
+  endTime           DateTime  @default(now())
+  memo              String    @default("") @db.VarChar(1023)
+  imageUrl          String    @default("") @db.VarChar(255)
+  originalImageUrl  String    @default("") @db.VarChar(255)
+  babyId            Int
+  attribute         Json      @default("{}")
+  analysisResult    Analysis? 
+  createdAt         DateTime  @default(now())
+
+  @@map("Record")
+  @@index([babyId, type, startTime])
+  @@index([babyId, type, endTime])
+  @@index([babyId, startTime, endTime])
+  @@index([babyId, type])
+}
+
+model Auth {
+  authId        Int       @default(autoincrement()) @id
+  email         String
+  provider      String
+  uuid          Bytes     @db.Binary(16) @unique
+  refreshToken  String?   @db.VarChar(255)
+  createdAt     DateTime  @default(now())
+  
+  @@map("Auth")
+  @@unique ([email, provider])
+}
+
+model Analysis {
+  analysisId                      Int       @default(autoincrement()) @id
+  babyAgeInDays                   Int      
+  babyRecentMeals                 String
+  parentConcerns                  String    @db.VarChar(500)
+  color                           String    
+  colorEvaluation                 String    @db.VarChar(1000)
+  texture                         String    
+  textureEvaluation               String    @db.VarChar(1000)
+  specialObservations             String    
+  specialObservationsEvaluation   String    @db.VarChar(1000)
+  comprehensiveAssessment         String    @db.VarChar(1500)
+  result                          Json
+  recordId                        Int       @unique
+  record                          Record    @relation(fields: [recordId], references: [recordId])
+  createdAt                       DateTime  @default(now())
+
+  @@map("Analysis")
+  @@index([recordId])
+}
+
+model Invite {
+  inviteId    Int       @default(autoincrement()) @id
+  inviteCode  Int       @unique
+  babyId      Int
+  deadline    DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@map("Invite")
+}
+
+model Csc {
+  cscId       Int       @default(autoincrement()) @id
+  email       String    @default("")
+  content     String    @default("") @db.VarChar(1023)
+  isSolve     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@map("Csc")
+  @@index([isSolve])
+}
+
+model Prefer {
+  preferId    Int       @default(autoincrement()) @id
+  babyId      Int 
+  foodId      Int       
+  type        Int       @default(1)
+  createdAt   DateTime  @default(now())
+
+  @@unique([babyId, foodId])
+  @@map("Prefer")
+}
+
+model AnalysisReport {
+  reportId                    Int       @id @default(autoincrement())
+  babyId                      Int
+  createdAt                   DateTime  @default(now())
+  dailyFeedingAmount          String    @db.Text
+  feedingFrequencyAndInterval String    @db.Text
+  feedingScore                Int
+  dailySleepAmount            String    @db.Text
+  sleepCycle                  String    @db.Text
+  sleepFeedingCorrelation     String    @db.Text
+  sleepScore                  Int
+  stoolColorAndTexture        String    @db.Text
+  foodStoolRelation           String    @db.Text
+  digestiveHealthScore        Int
+  nutritionStatus             String    @db.Text
+  sleepDevelopmentRelation    String    @db.Text
+  digestiveHealthPrediction   String    @db.Text
+  overallHealthRecommendation String    @db.Text
+  overallHealthScore          Int
+
+  @@map("AnalysisReport")
+  @@index([babyId])
+}
+
+model Refresh {
+  refreshId   Int       @id @default(autoincrement())
+  userUuid    Bytes     @db.Binary(16)
+  token       String    @unique
+  createdAt   DateTime  @default(now())
+
+  @@map("Refresh")
+  @@index([userUuid])
+  @@index([token])
+}
+
+model Inquiry {
+  inquiryId   Int       @id @default(autoincrement())
+  userUuid    Bytes     @db.Binary(16)
+  title       String    @default("")
+  content     String    @db.VarChar(400) @default("")
+  reply       String?   @db.VarChar(400)
+  createdAt   DateTime  @default(now())
+
+  @@map("Inquiry")
+  @@index([userUuid])
+}
+
+model Room {
+  roomId      Int       @id @default(autoincrement())
+  userUuid    Bytes     @db.Binary(16)
+  title       String    @default("chatting room")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+
+  @@map("Room")
+  @@index([userUuid])
+}
+
+model Message {
+  messageId           Int       @id @default(autoincrement())
+  roomId              Int
+  isUser              Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  encryptedContent    Bytes
+
+  @@map("Message")
+  @@index([roomId])
+}
+
+model GeneralSajuAnalysis {
+  sajuId            Int       @id @default(autoincrement())
+  userUuid          Bytes     @db.Binary(16)
+  analysisResult    Json
+  type              Int
+  createdAt         DateTime  @default(now())
+
+  @@map("GeneralSajuAnalysis")
+  @@index([userUuid])
+  @@index([type])
+}
+
+model Device {
+  deviceId      Int         @id @default(autoincrement())
+  userUuid      Bytes       @db.Binary(16)
+  deviceToken   String      @unique
+  language      String      @default("ko")
+  createdAt     DateTime    @default(now())
+  
+  @@map("Device")
+  @@index([language])
+}
+
+model WeeklyReport {
+  weeklyReportId  Int       @id @default(autoincrement())
+  babyId          Int
+  report          Json
+  createdAt       DateTime  @default(now())
+
+  @@map("WeeklyReport")
+  @@index([babyId])
+}
+
+model UserContact {
+  userContactid   Int       @id @default(autoincrement()) 
+  userUuid        Bytes     @db.Binary(16)  @unique
+  phoneNumber     String    @unique
+  inviteCode      String    @unique
+  createdAt       DateTime  @default(now())
+
+  @@map("UserContact")
+}
+
+model EventInvite {
+  eventInviteId   Int       @id @default(autoincrement())
+  userUuid        Bytes     @db.Binary(16)
+  invitedEmail    String
+  provider        String
+  createdAt       DateTime  @default(now())
+
+  @@map("EventInvite")
+  @@index([userUuid])
+  @@unique([invitedEmail, provider])
+}
+
+model MissionCompletion {
+  missionCompletionId   Int       @id @default(autoincrement())
+  userUuid              Bytes     @db.Binary(16)
+  type                  Int
+  completionDay         String
+  createdAt             DateTime  @default(now()) 
+
+  @@map("MissionCompletion")
+  @@unique([userUuid, type, completionDay])
+  @@index([userUuid])
+}
+
+model Diary {
+  diaryId       Int           @id @default(autoincrement())
+  userUuid      Bytes         @db.Binary(16)
+  babyId        Int
+  content       String        @db.Text
+  imageUrl      String?       @db.VarChar(255)
+  height        Float         @default(0)
+  weight        Float         @default(0) 
+  tags          DiaryTags[]
+  diaryDate     String
+  babyAge       Int  
+  createdAt     DateTime      @default(now())
+  isPublic      Boolean       @default(false)
+  isRealPublic  Boolean       @default(false)
+
+  @@map("Diary")
+  @@index([userUuid])
+  @@index([babyId])
+  @@index([diaryDate])
+  @@index([babyAge])
+  @@index([isPublic, isRealPublic])
+}
+
+model DiaryTags {
+  diaryTagId  Int       @id @default(autoincrement())
+  diaryId     Int
+  tagName     String
+  diary       Diary     @relation(fields: [diaryId], references: [diaryId])
+
+  @@map("DiaryTags")
+  @@unique([diaryId, tagName])
+  @@index([diaryId])
+  @@index([tagName])
+}
