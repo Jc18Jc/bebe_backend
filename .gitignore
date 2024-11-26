@@ -69,7 +69,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /src/saju/secret-saju.method.ts
 /src/report/secret-report.method.ts
 /src/analysis/secret-analysis.method.ts
-/src/analysis/test
+/src/analysis/test/anaysis.controller.spec.ts
 
 # docker, workflows
 .github/workflows
